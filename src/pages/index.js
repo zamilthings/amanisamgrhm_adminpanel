@@ -1,0 +1,12 @@
+export { default as Home } from './Home/Home';
+export { default as Login } from './Login';
+export { default as Dashboard } from './Admin/Dashboard';
+export { default as Surahs } from './Admin/Chapters';
+export { default as About } from './Admin/About';
+export { default as Thafseer } from './Admin/Thafseer';
+export { default as Verses } from './Admin/Verses';
+export { default as Feedbacks } from './Admin/Feedbacks';
+export { default as Settings } from './Admin/Settings';
+export { default as PrivacyPolicy } from './Home/Policy';
+export { default as TermsOfService } from './Home/TermsOfService';
+export { default as Contact } from './Home/Contact';
