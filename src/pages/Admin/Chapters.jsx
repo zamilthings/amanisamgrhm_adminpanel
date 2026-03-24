@@ -244,7 +244,7 @@ export default function Chapters() {
             <div>
               <p className="text-sm text-gray-500 mb-1">Meccan Revelations</p>
               <p className="text-2xl font-bold text-green-600">
-                {surahs.filter(s => s.chapter_type === 'Meccan').length}
+                {surahs.filter(s => s.chapter_type === 'Makkah').length}
               </p>
             </div>
             <div className="p-2 bg-green-50 rounded-lg">
@@ -258,7 +258,7 @@ export default function Chapters() {
             <div>
               <p className="text-sm text-gray-500 mb-1">Medinan Revelations</p>
               <p className="text-2xl font-bold text-purple-600">
-                {surahs.filter(s => s.chapter_type === 'Medinan').length}
+                {surahs.filter(s => s.chapter_type === 'Madeena').length}
               </p>
             </div>
             <div className="p-2 bg-purple-50 rounded-lg">
