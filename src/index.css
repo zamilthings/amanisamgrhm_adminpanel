@@ -9,3 +9,40 @@
     scroll-behavior: smooth;
 }
 
+
+/* Add to your global CSS file (e.g., index.css or App.css) */
+@font-face {
+  font-family: 'Arabic';
+  src: url('/fonts/arabic-font.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Malayalam';
+  src: url('/fonts/malayalam-font.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-arabic {
+  font-family: 'Arabic', 'Traditional Arabic', 'Amiri', 'Scheherazade', serif;
+  direction: rtl;
+}
+
+.font-malayalam {
+  font-family: 'Malayalam', 'Noto Sans Malayalam', 'Manjari', 'ML-TTRevathi', sans-serif;
+}
+
+/* For text input fields handling Unicode */
+input, textarea {
+  font-family: inherit;
+}
+
+/* Ensure proper rendering of combined characters */
+.unicode-text {
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}

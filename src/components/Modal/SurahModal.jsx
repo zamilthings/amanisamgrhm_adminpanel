@@ -8,7 +8,7 @@ export default function SurahModal({ mode, surah, onSave, onClose, open }) {
     arabic_name: "",
     malayalam_name: "",
     malayalam_meaning: "",
-    english_name: "",
+    // english_name: "",
     verse_count: "",
     chapter_type: "Meccan",
     chapter_info: "",
@@ -24,7 +24,7 @@ export default function SurahModal({ mode, surah, onSave, onClose, open }) {
         arabic_name: surah.arabic_name || "",
         malayalam_name: surah.malayalam_name || "",
         malayalam_meaning: surah.malayalam_meaning || "",
-        english_name: surah.english_name || "",
+        // english_name: surah.english_name || "",
         verse_count: surah.verse_count || "",
         chapter_type: surah.chapter_type || "Meccan",
         chapter_info: surah.chapter_info || "",
@@ -37,7 +37,7 @@ export default function SurahModal({ mode, surah, onSave, onClose, open }) {
         arabic_name: "",
         malayalam_name: "",
         malayalam_meaning: "",
-        english_name: "",
+        // english_name: "",
         verse_count: "",
         chapter_type: "Meccan",
         chapter_info: "",
@@ -163,7 +163,7 @@ export default function SurahModal({ mode, surah, onSave, onClose, open }) {
               </div>
 
               {/* English Name */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   English Name
                 </label>
@@ -174,7 +174,7 @@ export default function SurahModal({ mode, surah, onSave, onClose, open }) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
                   placeholder="The Opening"
                 />
-              </div>
+              </div> */}
 
               {/* Verse Count */}
               <div>

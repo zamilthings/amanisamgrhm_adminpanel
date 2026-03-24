@@ -84,10 +84,18 @@ export default function Feedbacks() {
     }
 
     // Apply date range filter
-    if (dateRange.start && dateRange.end) {
+    if (dateRange.start) {
       const startDate = new Date(dateRange.start);
-      const endDate = new Date(dateRange.end);
-      endDate.setHours(23, 59, 59, 999); // Include entire end day
+      startDate.setHours(0, 0, 0, 0);
+      
+      let endDate;
+      if (dateRange.end) {
+        endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+      }
       
       result = result.filter(fb => {
         const fbDate = new Date(fb.created_at);
@@ -107,7 +115,7 @@ export default function Feedbacks() {
     }
 
     setFilteredFeedbacks(result);
-  }, [feedbacks, statusFilter, dateRange, searchTerm]);
+  }, [feedbacks, statusFilter, dateRange.start, dateRange.end, searchTerm]);
 
   const handleView = (feedback) => {
     setSelectedFeedback(feedback);
@@ -135,9 +143,9 @@ export default function Feedbacks() {
       if (error) throw error;
 
       toast.success(`Feedback from ${feedback.name} deleted successfully`);
-      loadFeedbacks(); // Refresh the list
+      await loadFeedbacks(); // Refresh the list
     } catch (error) {
-      toast.error("Failed to delete feedback");
+      toast.error("Failed to delete feedback: " + error.message);
       console.error(error);
     }
   };
@@ -148,16 +156,16 @@ export default function Feedbacks() {
         .from("feedbacks")
         .update({ 
           status: 'read',
-          read_at: new Date().toISOString()
+          // read_at: new Date().toISOString()
         })
         .eq("id", feedback.id);
 
       if (error) throw error;
 
-      toast.success(`Marked as read`);
-      loadFeedbacks(); // Refresh the list
+      toast.success(`Marked as read successfully`);
+      await loadFeedbacks(); // Refresh the list
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Failed to update status: " + error.message);
       console.error(error);
     }
   };
@@ -168,16 +176,16 @@ export default function Feedbacks() {
         .from("feedbacks")
         .update({ 
           status: 'replied',
-          replied_at: new Date().toISOString()
+          // replied_at: new Date().toISOString()
         })
         .eq("id", feedback.id);
 
       if (error) throw error;
 
-      toast.success(`Marked as replied`);
-      loadFeedbacks(); // Refresh the list
+      toast.success(`Marked as replied successfully`);
+      await loadFeedbacks(); // Refresh the list
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Failed to update status: " + error.message);
       console.error(error);
     }
   };
@@ -192,7 +200,7 @@ export default function Feedbacks() {
             status: 'replied',
             reply_message: feedbackData.reply_message,
             replied_at: new Date().toISOString(),
-            replied_by: 'admin' // You can get this from auth context
+            // replied_by: 'admin'
           })
           .eq("id", feedbackData.id);
 
@@ -202,14 +210,19 @@ export default function Feedbacks() {
         
         // Here you would typically send an email notification
         console.log(`Reply sent to ${feedbackData.contact}:`, feedbackData.reply_message);
-      } else {
-        // Update status or other info
+      } else if (!replyMode && feedbackData.status) {
+        // Update status only
+        const updateData = {
+          status: feedbackData.status
+        };
+        
+        if (feedbackData.status === 'read') {
+          updateData.read_at = new Date().toISOString();
+        }
+        
         const { error } = await supabase
           .from("feedbacks")
-          .update({ 
-            status: feedbackData.status,
-            ...(feedbackData.status === 'read' && { read_at: new Date().toISOString() })
-          })
+          .update(updateData)
           .eq("id", feedbackData.id);
 
         if (error) throw error;
@@ -218,9 +231,9 @@ export default function Feedbacks() {
       }
 
       setModalOpen(false);
-      loadFeedbacks(); // Refresh the list
+      await loadFeedbacks(); // Refresh the list
     } catch (error) {
-      toast.error(`Failed to update feedback`);
+      toast.error(`Failed to update feedback: ${error.message}`);
       console.error(error);
     }
   };
@@ -253,6 +266,7 @@ export default function Feedbacks() {
     a.click();
     
     toast.success(`Exported ${filteredFeedbacks.length} feedbacks`);
+    window.URL.revokeObjectURL(url);
   };
 
   const handleBulkAction = (action) => {
@@ -661,7 +675,7 @@ export default function Feedbacks() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading feedbacks...</p>
         </div>
-      ) : feedbacks.length > 0 ? (
+      ) : filteredFeedbacks.length > 0 ? (
         <Table
           title="User Feedbacks"
           columns={columns}
