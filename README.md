@@ -1,3 +1,4 @@
+
 # Quran Admin Panel
 
 A lightweight admin dashboard built with **React**, **Supabase**, and **TailwindCSS** for managing Quran content such as Surahs, Ayahs, Thafseer, About App details, Feedbacks, and DB versions.
@@ -64,3 +65,5 @@ src/
  │   ├─ createClient.js
  │   └─ useAuth.js
  └─ App.jsx
+=======
+

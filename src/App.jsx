@@ -32,18 +32,18 @@ export default function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/admin/login" element={<Login />} />
 
-        <Route element={<AdminLayout />}>
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/surahs" element={<Surahs />} />
-          <Route path="/admin/verses" element={<Verses />} />
-          <Route path="/admin/thafseer" element={<Thafseer />} />
-          <Route path="/admin/feedbacks" element={<Feedbacks />} />
-          <Route path="/admin/settings" element={<Settings />} />
-          <Route path="/admin/about" element={<About />} />
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route  path="/admin" element={<AdminLayout />}>
+         <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="surahs" element={<Surahs />} />
+          <Route path="verses" element={<Verses />} />
+          <Route path="thafseer" element={<Thafseer />} />
+          <Route path="feedbacks" element={<Feedbacks />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="about" element={<About />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
       </Routes>
     </Router>
   );

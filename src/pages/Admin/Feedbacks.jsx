@@ -312,9 +312,80 @@ export default function Feedbacks() {
         <span className="font-mono font-semibold text-gray-600">#{value}</span>
       )
     },
+    {
+  header: "Details",
+  accessor: "details",
+  className: "md:hidden",
+  render: (_, row) => {
+    const config = statusConfig[row.status] || statusConfig.pending;
+    const Icon = config.icon;
+
+    return (
+      <div className="space-y-2">
+
+        {/* User */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center">
+            <User className="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <div className="font-medium text-gray-800 text-sm">
+              {row.name || "Anonymous"}
+            </div>
+            {row.contact && (
+              <div className="text-xs text-gray-500">
+                {row.contact}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Message */}
+        {/* <div className="text-sm text-gray-700 line-clamp-2">
+          {row.message}
+        </div> */}
+
+        {/* Status + Date */}
+        <div className="flex items-center justify-between text-xs">
+          <span className={`flex items-center gap-1 px-2 py-0.5 rounded ${config.color}`}>
+            <Icon className="w-3 h-3" />
+            {config.label}
+          </span>
+
+          <span className="text-gray-400">
+            {new Date(row.created_at).toLocaleDateString()}
+          </span>
+        </div>
+
+        {/* Actions */}
+        {/* <div className="flex gap-2 pt-1">
+          <button onClick={() => handleView(row)} className="text-blue-600 text-xs">View</button>
+
+          {row.status !== "replied" && (
+            <button onClick={() => handleReply(row)} className="text-green-600 text-xs">
+              Reply
+            </button>
+          )}
+
+          {row.status === "pending" && (
+            <button onClick={() => handleMarkAsRead(row)} className="text-blue-600 text-xs">
+              Read
+            </button>
+          )}
+
+          <button onClick={() => handleDelete(row)} className="text-red-600 text-xs">
+            Delete
+          </button>
+        </div> */}
+
+      </div>
+    );
+  }
+},
     { 
       header: "User", 
       accessor: "name",
+      className: "hidden md:table-cell",
       render: (value, row) => (
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -337,6 +408,7 @@ export default function Feedbacks() {
     { 
       header: "Message", 
       accessor: "message",
+      className: "hidden md:table-cell",
       render: (value) => (
         <div className="max-w-xs">
           <div className="text-gray-700 line-clamp-2 text-sm">
@@ -351,6 +423,7 @@ export default function Feedbacks() {
     { 
       header: "Status", 
       accessor: "status",
+      className: "hidden md:table-cell",
       render: (value) => {
         const config = statusConfig[value] || statusConfig.pending;
         const Icon = config.icon;
@@ -365,6 +438,7 @@ export default function Feedbacks() {
     { 
       header: "Date", 
       accessor: "created_at",
+      className: "hidden md:table-cell",
       render: (value) => (
         <div className="space-y-1">
           <div className="text-sm text-gray-800">
@@ -378,9 +452,9 @@ export default function Feedbacks() {
     },
     { 
       header: "Actions", 
-      accessor: "id",
+      accessor: "actions",
       render: (value, row) => (
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 justify-end flex-col md:flex-row">
           <button
             onClick={() => handleView(row)}
             className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
@@ -389,7 +463,7 @@ export default function Feedbacks() {
             <Eye className="w-4 h-4" />
           </button>
           
-          {row.status !== 'replied' && (
+          {/* {row.status !== 'replied' && (
             <button
               onClick={() => handleReply(row)}
               className="p-1.5 rounded-lg hover:bg-green-100 text-green-600 transition-colors"
@@ -397,7 +471,7 @@ export default function Feedbacks() {
             >
               <Reply className="w-4 h-4" />
             </button>
-          )}
+          )} */}
           
           {row.status === 'pending' && (
             <button
@@ -618,7 +692,7 @@ export default function Feedbacks() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Date Range
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-col md:flex-row">
               <input
                 type="date"
                 value={dateRange.start}

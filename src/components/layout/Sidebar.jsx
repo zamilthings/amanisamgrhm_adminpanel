@@ -1,9 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  Info, 
-  BookOpen, 
-  FileText, 
+import {
+  Home,
+  Info,
+  BookOpen,
+  FileText,
   Book,
   MessageSquare,
   Settings,
@@ -12,8 +12,8 @@ import {
   ChevronRight,
   LogOut
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/libs/useAuth"; 
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/libs/useAuth";
 
 const menuItems = [
   { path: "/admin/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -29,71 +29,91 @@ export default function Sidebar({ collapsed, onToggle }) {
   const { pathname } = useLocation();
   const { logout } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
+  const sidebarRef = useRef(null);
 
+  // Detect screen size
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Close on outside click (mobile only)
+  useEffect(() => {
+    if (!isMobile || collapsed) return;
+
+    const handleClickOutside = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        onToggle();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMobile, collapsed]);
+
+  // Close on route change (mobile)
+  useEffect(() => {
+    if (isMobile && !collapsed) {
+      onToggle();
+    }
+  }, [pathname]);
 
   const linkClass = (itemPath) =>
     `flex items-center px-4 py-3 rounded-xl mb-2 transition-all duration-200 group ${
       pathname.startsWith(itemPath)
         ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-200"
         : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 border border-transparent hover:border-blue-100"
-    } ${collapsed ? 'justify-center px-3' : ''}`;
+    } ${collapsed ? "justify-center px-3" : ""}`;
 
   const iconClass = (itemPath) =>
-    pathname.startsWith(itemPath) 
-      ? 'text-white' 
-      : 'text-gray-500 group-hover:text-blue-600';
+    pathname.startsWith(itemPath)
+      ? "text-white"
+      : "text-gray-500 group-hover:text-blue-600";
+
+  // Clean sidebar state logic
+  const isOpen = !collapsed;
+
+  const sidebarClasses = `
+    fixed z-40 h-full
+    bg-gradient-to-b from-white to-gray-50
+    shadow-xl border-r border-gray-200
+    transition-all duration-200
+    ${isOpen ? "w-64" : "w-20"}
+    ${isMobile ? (isOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0"}
+  `;
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {!collapsed && isMobile && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-40 md:hidden backdrop-blur-sm"
-          onClick={onToggle}
-        />
+      {/* Overlay (mobile only) */}
+      {isMobile && isOpen && (
+        <div className="fixed inset-0 bg-black/30 z-30 backdrop-blur-sm" />
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        fixed  z-40
-        bg-gradient-to-b from-white to-gray-50 
-        h-min-screen 
-        h-full
-        shadow-xl shadow-blue-100/50 
-        border-r border-gray-200
-        transition-all duration-200
-        ease-in-out
-        ${collapsed ? 'w-20' : 'w-64'}
-        ${isMobile && !collapsed ? 'translate-x-0' : isMobile ? '-translate-x-full' : 'translate-x-0'}
-      `}>
-        {/* Sidebar Header */}
+      <aside ref={sidebarRef} className={sidebarClasses}>
+        {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <div className={`flex items-center justify-between ${collapsed ? 'justify-center' : ''}`}>
-            {!collapsed && (
+          <div className={`flex items-center justify-between ${collapsed ? "justify-center" : ""}`}>
+            {!collapsed ? (
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <Book className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <Book className="w-4 h-4 md:w-6 md:h-6 text-white" />
                 </div>
-                <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                <h2 className="text-lg md:text-xl font-bold text-blue-700">
                   Quran Admin
                 </h2>
               </div>
-            )}
-            {collapsed && (
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <Book className="w-6 h-6 text-white" />
+            ) : (
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                <Book className="w-4 h-4 md:w-6 md:h-6 text-white" />
               </div>
             )}
+
             <button
               onClick={onToggle}
-              className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="p-2 rounded-lg hover:bg-blue-50"
             >
               {collapsed ? (
                 <ChevronRight className="w-5 h-5 text-blue-600" />
@@ -104,7 +124,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           </div>
         </div>
 
-        {/* Navigation */}
+        {/* Nav */}
         <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-180px)]">
           {menuItems.map((item) => (
             <Link
@@ -113,33 +133,28 @@ export default function Sidebar({ collapsed, onToggle }) {
               className={linkClass(item.path)}
               title={collapsed ? item.label : ""}
             >
-              <item.icon className={`w-5 h-5 ${iconClass(item.path)} ${collapsed ? '' : 'mr-3'}`} />
+              <item.icon
+                className={`w-3 md:w-5 h-3 md:h-5 ${iconClass(item.path)} ${
+                  collapsed ? "" : "mr-3"
+                }`}
+              />
               {!collapsed && (
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium text-sm md:text-md">{item.label}</span>
               )}
             </Link>
           ))}
         </nav>
 
-        {/* Logout Button */}
+        {/* Logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white/50 backdrop-blur-sm">
           <button
             onClick={logout}
-            className={`
-              flex items-center w-full px-4 py-3 rounded-xl 
-              text-red-600 
-              hover:bg-red-50 hover:border-red-200
-              border border-transparent
-              transition-all duration-200
-              cursor-pointer
-              ${collapsed ? 'justify-center px-3' : ''}
-            `}
-            title={collapsed ? "Logout" : ""}
+            className={`flex items-center w-full px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition ${
+              collapsed ? "justify-center px-3" : ""
+            }`}
           >
             <LogOut className="w-5 h-5" />
-            {!collapsed && (
-              <span className="ml-3 font-medium">Logout</span>
-            )}
+            {!collapsed && <span className="ml-3 font-medium">Logout</span>}
           </button>
         </div>
       </aside>

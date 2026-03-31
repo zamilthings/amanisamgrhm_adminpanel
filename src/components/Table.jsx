@@ -142,7 +142,7 @@ export default function Table({
               {columns.map((col) => (
                 <th
                   key={col.accessor}
-                  className="p-4 border-b border-gray-200 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                  className={`p-4 border-b border-gray-200 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 ${col.className || ""}`}
                   onClick={() => handleSort(col.accessor)}
                 >
                   <div className="flex items-center">
@@ -198,7 +198,7 @@ export default function Table({
                   className="hover:bg-gray-50"
                 >
                   {columns.map((col) => (
-                    <td key={col.accessor} className="p-4 border-b border-gray-200">
+                    <td key={col.accessor}  className={`p-4 border-b border-gray-200 ${col.className || ""}`}>
                       <div className="text-gray-800">
                         {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                       </div>
@@ -207,7 +207,7 @@ export default function Table({
                   
                   {showActions && (
                     <td className="p-4 border-b border-gray-200">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex-col flex md:items-center space-x-2 justify-center md:flex-row md:space-x-0 md:space-y-2">
                         {onView && (
                           <button
                             onClick={() => onView(row)}
