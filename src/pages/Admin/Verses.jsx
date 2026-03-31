@@ -151,15 +151,17 @@ export default function Verses() {
       toast.success(`Verse ${ayah.verse_no} deleted successfully`);
 
       // Refresh the list
-      if (selectedSurah) {
-        const { data } = await supabase
-          .from("ayahs")
-          .select("*")
-          .eq("chapter_no", selectedSurah)
-          .order("verse_no");
+      // if (selectedSurah) {
+      //   const { data } = await supabase
+      //     .from("ayahs")
+      //     .select("*")
+      //     .eq("chapter_no", selectedSurah)
+      //     .order("verse_no");
 
-        setAyahs(data || []);
-      }
+      //   setAyahs(data || []);
+      // }
+      setAyahs(prev => prev.filter(a => a.id !== ayah.id));
+
     } catch (error) {
       toast.error("Failed to delete verse");
       console.error(error);
@@ -229,15 +231,24 @@ export default function Verses() {
       setModalOpen(false);
 
       // Refresh the list
-      if (selectedSurah) {
-        const { data } = await supabase
-          .from("ayahs")
-          .select("*")
-          .eq("chapter_no", selectedSurah)
-          .order("verse_no");
+      // if (selectedSurah) {
+      //   const { data } = await supabase
+      //     .from("ayahs")
+      //     .select("*")
+      //     .eq("chapter_no", selectedSurah)
+      //     .order("verse_no");
 
-        setAyahs(data || []);
+      //   setAyahs(data || []);
+      // }
+      setAyahs(prev => {
+        if (modalMode === "add") {
+          return [...prev, { ...verseData, id: prev.length ? Math.max(...prev.map(a => a.id)) + 1 : 1 }];
+        } else {
+          return prev.map(a => a.id === verseData.id ? { ...a, ...verseData } : a);
+        }
       }
+      );
+      
     } catch (error) {
       toast.error(`Failed to ${modalMode} verse`);
       console.error(error);

@@ -57,7 +57,9 @@ export default function Chapters() {
       if (error) throw error;
 
       toast.success(`Chapter "${surah.arabic_name}" deleted successfully`);
-      loadSurahs(); // Refresh the list
+      setSurahs(prev => prev.filter(s => s.id !== surah.id));
+      // Optionally, you could update the local state directly here instead of reloading all surahs
+      // loadSurahs(); // Refresh the list
     } catch (error) {
       toast.error("Failed to delete chapter");
       console.error("Delete error:", error);
@@ -105,7 +107,15 @@ export default function Chapters() {
       }
 
       setModalOpen(false);
-      loadSurahs(); // Refresh the list
+      setSurahs(prev => {
+        if (modalMode === "add") {
+          return [...prev, { ...surahData, id: prev.length ? Math.max(...prev.map(s => s.id)) + 1 : 1 }];
+        } else {
+          return prev.map(s => s.id === surahData.id ? { ...s, ...surahData } : s);
+        }
+      });
+      // Optionally, you could update the local state directly here instead of reloading all surahs
+      // loadSurahs(); // Refresh the list
     } catch (error) {
       toast.error(`Failed to ${modalMode} chapter`);
       console.error("Save error:", error);

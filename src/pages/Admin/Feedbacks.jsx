@@ -143,7 +143,8 @@ export default function Feedbacks() {
       if (error) throw error;
 
       toast.success(`Feedback from ${feedback.name} deleted successfully`);
-      await loadFeedbacks(); // Refresh the list
+      setFeedbacks(prev => prev.filter(fb => fb.id !== feedback.id));
+      // await loadFeedbacks(); // Refresh the list
     } catch (error) {
       toast.error("Failed to delete feedback: " + error.message);
       console.error(error);
@@ -163,7 +164,8 @@ export default function Feedbacks() {
       if (error) throw error;
 
       toast.success(`Marked as read successfully`);
-      await loadFeedbacks(); // Refresh the list
+      setFeedbacks(prev => prev.map(fb => fb.id === feedback.id ? { ...fb, status: 'read' } : fb));
+      // await loadFeedbacks(); // Refresh the list
     } catch (error) {
       toast.error("Failed to update status: " + error.message);
       console.error(error);
@@ -183,7 +185,8 @@ export default function Feedbacks() {
       if (error) throw error;
 
       toast.success(`Marked as replied successfully`);
-      await loadFeedbacks(); // Refresh the list
+      setFeedbacks(prev => prev.map(fb => fb.id === feedback.id ? { ...fb, status: 'replied' } : fb));
+      // await loadFeedbacks(); // Refresh the list
     } catch (error) {
       toast.error("Failed to update status: " + error.message);
       console.error(error);
@@ -231,7 +234,14 @@ export default function Feedbacks() {
       }
 
       setModalOpen(false);
-      await loadFeedbacks(); // Refresh the list
+      // Optionally, you could update the local state directly here instead of reloading all feedbacks
+      if (replyMode && feedbackData.reply_message) {
+        setFeedbacks(prev => prev.map(fb => fb.id === feedbackData.id ? { ...fb, status: 'replied', reply_message: feedbackData.reply_message, replied_at: new Date().toISOString() } : fb));
+      } else if (!replyMode && feedbackData.status) {
+        setFeedbacks(prev => prev.map(fb => fb.id === feedbackData.id ? { ...fb, status: feedbackData.status } : fb));
+      }
+
+      // await loadFeedbacks(); // Refresh the list
     } catch (error) {
       toast.error(`Failed to update feedback: ${error.message}`);
       console.error(error);

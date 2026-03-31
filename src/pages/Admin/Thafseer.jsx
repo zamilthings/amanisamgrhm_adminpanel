@@ -219,6 +219,10 @@ export default function Thafseer() {
 
         const surahName = surahs.find(s => s.id === tafsirData.chapter_no)?.malayalam_name || `Chapter ${tafsirData.chapter_no}`;
         toast.success(`Tafsir added successfully for ${surahName}`);
+
+        // Add the new tafsir to local state without reloading all data
+        setTafsirs(prev => [...prev, data]);
+        
       } else {
         // Update existing tafsir
         const { error } = await supabase
@@ -233,7 +237,16 @@ export default function Thafseer() {
       }
 
       setModalOpen(false);
-      loadData(); // Refresh the list
+      // update local state without reloading all data
+      setTafsirs(prev => {
+        if (modalMode === "add") {
+          return [...prev, tafsirData];
+        } else {
+          return prev.map(t => t.id === tafsirData.id ? tafsirData : t);
+        }
+      });
+
+      // loadData();
     } catch (error) {
       toast.error(`Failed to ${modalMode} tafsir`);
       console.error(error);
