@@ -7,7 +7,9 @@ import { useState } from "react";
 export default function Layout() {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+ const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+  return localStorage.getItem("sidebar") === "collapsed";
+});
 
   if (loading) {
     return (
@@ -20,24 +22,32 @@ export default function Layout() {
     );
   }
 
-  if (!user && location.pathname !== '/admin/login') {
-    return <Navigate to="/admin/login" replace />;
-  }
+  const toggleSidebar = () => {
+  setSidebarCollapsed(prev => {
+    const next = !prev;
+    localStorage.setItem("sidebar", next ? "collapsed" : "open");
+    return next;
+  });
+};
 
-  if (user && location.pathname === '/admin/login') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
+if (!user && !loading && location.pathname.startsWith('/admin')) {
+  return <Navigate to="/admin/login" replace />;
+}
+
+if (user && location.pathname.startsWith('/admin/login')) {
+  return <Navigate to="/admin/dashboard" replace />;
+}
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Sidebar 
         collapsed={sidebarCollapsed} 
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggle={toggleSidebar}
       />
       <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'sm:ml-20' : 'sm:ml-64'}`}>
-        <Header onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
-        <main className="p-6 min-h-[calc(100vh-92px)]">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <Header onToggleSidebar={toggleSidebar} />
+        <main className="p-3 md:p-6 min-h-[calc(100vh-92px)]">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-3 md:p-6">
             <Outlet />
           </div>
         </main>

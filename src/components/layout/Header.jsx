@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Menu, User, Bell, Search , LogOut , Settings } from "lucide-react";
+import { Menu, User, Bell, Search, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/libs/useAuth";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Header({ onToggleSidebar }) {
   const { user, logout } = useAuth();
@@ -9,19 +9,29 @@ export default function Header({ onToggleSidebar }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const userMenuRef = useRef(null);
   const notificationsRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+      const target = event.target;
+
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(target)
+      ) {
         setShowUserMenu(false);
       }
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(target)
+      ) {
         setShowNotifications(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   return (
@@ -36,13 +46,13 @@ export default function Header({ onToggleSidebar }) {
           >
             <Menu className="w-5 h-5 text-blue-600" />
           </button>
-          
+
           {/* Breadcrumb or Title */}
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+            <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
               Admin Dashboard
             </h1>
-            <p className="text-sm text-gray-500">Welcome back, {user?.name || 'Admin'}!</p>
+            <p className="text-xs md:text-sm text-gray-500">Welcome back, {user?.name || 'Admin'}!</p>
           </div>
         </div>
 
@@ -75,7 +85,10 @@ export default function Header({ onToggleSidebar }) {
           {/* User Menu */}
           <div className="relative" ref={userMenuRef}>
             <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
+              onClick={() => {
+                setShowUserMenu(prev => !prev);
+                setShowNotifications(false);
+              }}
               className="flex items-center space-x-3 p-2 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-200"
               aria-label="User menu"
             >
@@ -103,13 +116,16 @@ export default function Header({ onToggleSidebar }) {
                   </p>
                 </div>
                 <div className="py-2">
-                  <Link
-                    to="/admin/settings"
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/admin/settings');
+                    }}
                     className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
                   >
                     <Settings className="w-4 h-4 mr-3 text-blue-500" />
                     Profile Settings
-                  </Link>
+                  </button>
                   <button
                     onClick={logout}
                     className="flex items-center w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"

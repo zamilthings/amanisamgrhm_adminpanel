@@ -3,10 +3,10 @@ import { supabase } from "@/libs/createClient";
 import { toast } from "sonner";
 import Table from "@/components/Table";
 import VerseModal from "@/components/Modal/VerseModal";
-import { 
-  BookOpen, 
-  Filter, 
-  Download, 
+import {
+  BookOpen,
+  Filter,
+  Download,
   Search,
   RefreshCw,
   Plus,
@@ -22,12 +22,12 @@ export default function Verses() {
   const [filteredAyahs, setFilteredAyahs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [surahLoading, setSurahLoading] = useState(false);
-  
+
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add"); // "add" or "edit"
   const [selectedVerse, setSelectedVerse] = useState(null);
-  
+
   // Filter states
   const [juzFilter, setJuzFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +41,7 @@ export default function Verses() {
           .from("surahs")
           .select("id, malayalam_name, arabic_name, verse_count")
           .order("id");
-        
+
         if (error) throw error;
         setSurahs(data || []);
       } catch (error) {
@@ -70,15 +70,15 @@ export default function Verses() {
           .order("verse_no");
 
         if (error) throw error;
-        
+
         setAyahs(data || []);
         setFilteredAyahs(data || []);
-        
+
         // Reset filters
         setJuzFilter("all");
         setSearchTerm("");
         setVerseRange({ start: "", end: "" });
-        
+
         toast.success(`Loaded ${data?.length || 0} verses`);
       } catch (error) {
         toast.error("Failed to load verses");
@@ -107,7 +107,7 @@ export default function Verses() {
       const start = parseInt(verseRange.start);
       const end = parseInt(verseRange.end);
       if (!isNaN(start) && !isNaN(end)) {
-        result = result.filter(ayah => 
+        result = result.filter(ayah =>
           ayah.verse_no >= start && ayah.verse_no <= end
         );
       }
@@ -116,7 +116,7 @@ export default function Verses() {
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(ayah => 
+      result = result.filter(ayah =>
         ayah.arabic?.toLowerCase().includes(term) ||
         ayah.arabic_ascii?.toLowerCase().includes(term) ||
         ayah.malayalam?.toLowerCase().includes(term) ||
@@ -135,7 +135,7 @@ export default function Verses() {
 
   const handleDelete = async (ayah) => {
     const selectedSurahName = surahs.find(s => s.id === selectedSurah)?.malayalam_name;
-    
+
     if (!window.confirm(`Are you sure you want to delete verse ${ayah.verse_no} of ${selectedSurahName}?`)) {
       return;
     }
@@ -149,7 +149,7 @@ export default function Verses() {
       if (error) throw error;
 
       toast.success(`Verse ${ayah.verse_no} deleted successfully`);
-      
+
       // Refresh the list
       if (selectedSurah) {
         const { data } = await supabase
@@ -157,7 +157,7 @@ export default function Verses() {
           .select("*")
           .eq("chapter_no", selectedSurah)
           .order("verse_no");
-        
+
         setAyahs(data || []);
       }
     } catch (error) {
@@ -169,6 +169,9 @@ export default function Verses() {
   const handleView = (ayah) => {
     toast.info(`Viewing verse ${ayah.verse_no}`);
     // Could open a detailed view modal here
+    setSelectedVerse(ayah);
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
   const handleAddNew = () => {
@@ -176,12 +179,12 @@ export default function Verses() {
       toast.warning("Please select a chapter first");
       return;
     }
-    
+
     const selectedSurahObj = surahs.find(s => s.id === selectedSurah);
-    const nextVerseNumber = ayahs.length > 0 
-      ? Math.max(...ayahs.map(a => a.verse_no)) + 1 
+    const nextVerseNumber = ayahs.length > 0
+      ? Math.max(...ayahs.map(a => a.verse_no)) + 1
       : 1;
-    
+
     setSelectedVerse({
       chapter_no: selectedSurah,
       verse_no: nextVerseNumber,
@@ -224,7 +227,7 @@ export default function Verses() {
       }
 
       setModalOpen(false);
-      
+
       // Refresh the list
       if (selectedSurah) {
         const { data } = await supabase
@@ -232,7 +235,7 @@ export default function Verses() {
           .select("*")
           .eq("chapter_no", selectedSurah)
           .order("verse_no");
-        
+
         setAyahs(data || []);
       }
     } catch (error) {
@@ -266,7 +269,7 @@ export default function Verses() {
     a.href = url;
     a.download = `verses-chapter-${selectedSurah}-${selectedSurahName}.csv`;
     a.click();
-    
+
     toast.success(`Exported ${filteredAyahs.length} verses`);
   };
 
@@ -277,53 +280,95 @@ export default function Verses() {
 
   // Get unique Juz numbers for current surah
   const uniqueJuzs = [...new Set(ayahs.map(a => a.juz_no))].sort((a, b) => a - b);
-  
+
   const selectedSurahObj = surahs.find(s => s.id === selectedSurah);
   const totalVersesInSurah = selectedSurahObj?.verse_count || 0;
 
   const columns = [
-    { 
-      header: "Verse", 
+    {
+      header: "Verse",
       accessor: "verse_no",
+      className: "md:table-cell hidden",
       render: (value, row) => (
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold">
             {value}
           </div>
-          <span className="font-mono text-sm text-gray-500">#{row.id}</span>
+          {/* <span className="font-mono text-sm text-gray-500">#{row.id}</span> */}
         </div>
       )
     },
-    { 
-      header: "Juz", 
+    {
+      header: "Details",
+      accessor: "details",
+      className: "md:hidden table-cell",
+      render: (_, row) => (
+        <div className="space-y-2">
+
+          {/* Verse + Juz */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+              {row.verse_no}
+            </div>
+
+            <span className="px-2 py-0.5 bg-purple-100 text-purple-600 rounded text-xs font-medium">
+              Juz {row.juz_no}
+            </span>
+          </div>
+
+          {/* Arabic */}
+          <div className="text-right font-arabic text-lg leading-relaxed">
+            {row.arabic}
+          </div>
+
+          {/* Malayalam */}
+          <div className="text-gray-700 text-sm leading-relaxed">
+            {row.malayalam}
+          </div>
+
+          {/* ASCII (optional, keep small) */}
+          <div className="font-mono text-xs text-gray-400 break-all">
+            {row.arabic_ascii}
+          </div>
+
+        </div>
+      )
+    },
+    {
+      header: "Juz",
       accessor: "juz_no",
+      className: "md:table-cell hidden",
       render: (value) => (
         <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded-full text-xs font-semibold flex flex-row flex-nowrap items-center justify-center min-w-[55px]">
           Juz {value}
         </span>
       )
     },
-    { 
-      header: "Arabic", 
+    {
+      header: "Arabic",
       accessor: "arabic",
+      className: "md:table-cell hidden",
+
       render: (value) => (
         <div className="text-right font-arabic text-xl leading-relaxed min-w-[200px]">
           {value}
         </div>
       )
     },
-    { 
-      header: "Arabic (ASCII)", 
+    {
+      header: "Arabic (ASCII)",
       accessor: "arabic_ascii",
+      className: "md:table-cell hidden",
       render: (value) => (
         <div className="font-mono text-sm text-gray-600 break-all">
           {value}
         </div>
       )
     },
-    { 
-      header: "Malayalam", 
+    {
+      header: "Malayalam",
       accessor: "malayalam",
+      className: "md:table-cell hidden",
       render: (value) => (
         <div className="text-gray-700 leading-relaxed">
           {value}
@@ -340,7 +385,7 @@ export default function Verses() {
           <h2 className="text-2xl font-bold text-gray-800">Quran Verses (Ayahs)</h2>
           <p className="text-gray-600 mt-1">Manage verses from all chapters of the Holy Quran</p>
         </div>
-        
+
         <div className="flex items-center space-x-3 mt-4 md:mt-0">
           <button
             onClick={() => selectedSurah && window.location.reload()}
@@ -349,28 +394,26 @@ export default function Verses() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          
+
           <button
             onClick={handleAddNew}
             disabled={!selectedSurah}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              !selectedSurah
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${!selectedSurah
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
           >
             <Plus className="w-4 h-4" />
             Add Verse
           </button>
-          
+
           <button
             onClick={handleBulkAdd}
             disabled={!selectedSurah}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              !selectedSurah
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-green-600 text-white hover:bg-green-700"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${!selectedSurah
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-green-600 text-white hover:bg-green-700"
+              }`}
           >
             <Layers className="w-4 h-4" />
             Bulk Add
@@ -387,7 +430,7 @@ export default function Verses() {
               Choose a chapter to view and manage its verses
             </p>
           </div>
-          
+
           <div className="w-full md:w-auto">
             <div className="relative">
               <select
@@ -443,7 +486,7 @@ export default function Verses() {
               <Filter className="w-5 h-5 text-gray-500" />
               <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
@@ -455,15 +498,14 @@ export default function Verses() {
               >
                 Clear Filters
               </button>
-              
+
               <button
                 onClick={handleExport}
                 disabled={!filteredAyahs.length}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  !filteredAyahs.length
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-green-600 text-white hover:bg-green-700"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${!filteredAyahs.length
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-green-600 text-white hover:bg-green-700"
+                  }`}
               >
                 <Download className="w-4 h-4" />
                 Export ({filteredAyahs.length})
@@ -545,7 +587,7 @@ export default function Verses() {
                 {juzFilter !== "all" && ` in Juz ${juzFilter}`}
                 {searchTerm && ` matching "${searchTerm}"`}
               </div>
-              
+
               <div className="flex items-center gap-4">
                 <div className="text-gray-500">
                   Juz: {uniqueJuzs.join(", ")}

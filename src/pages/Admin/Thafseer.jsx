@@ -3,10 +3,10 @@ import { supabase } from "@/libs/createClient";
 import { toast } from "sonner";
 import Table from "@/components/Table";
 import TafsirModal from "@/components/Modal/TafsirModal";
-import { 
-  BookOpen, 
-  Filter, 
-  Download, 
+import {
+  BookOpen,
+  Filter,
+  Download,
   Search,
   RefreshCw,
   Plus,
@@ -23,12 +23,12 @@ export default function Thafseer() {
   const [tafsirs, setTafsirs] = useState([]);
   const [filteredTafsirs, setFilteredTafsirs] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("add"); 
+  const [modalMode, setModalMode] = useState("add");
   const [selectedTafsir, setSelectedTafsir] = useState(null);
-  
+
   // Filter states
   const [chapterFilter, setChapterFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +42,7 @@ export default function Thafseer() {
           .from("surahs")
           .select("id, malayalam_name, arabic_name, verse_count")
           .order("id");
-        
+
         if (error) throw error;
         setSurahs(data || []);
       } catch (error) {
@@ -54,39 +54,73 @@ export default function Thafseer() {
   }, []);
 
   // Load tafsir data
-  useEffect(() => {
-    loadData();
-  }, []);
+  // useEffect(() => {
+  //   // loadData();
+  // }, []);
 
-  async function loadData() {
+  // async function loadData() {
+  //   try {
+  //     setLoading(true);
+  //     const { data, error } = await supabase
+  //       .from("thafseers")
+  //       .select("*")
+  //       .order("chapter_no")
+  //       .order("verse_start");
+
+  //     if (error) throw error;
+
+  //     setTafsirs(data || []);
+  //     setFilteredTafsirs(data || []);
+
+  //     // Reset filters
+  //     setChapterFilter("all");
+  //     setSearchTerm("");
+  //     setRangeFilter({ start: "", end: "" });
+
+  //     toast.success(`Loaded ${data?.length || 0} tafsir entries`);
+  //   } catch (error) {
+  //     toast.error("Failed to load tafsir data");
+  //     console.error(error);
+  //     setTafsirs([]);
+  //     setFilteredTafsirs([]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
+
+  async function loadData(chapter = null) {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      let query = supabase
         .from("thafseers")
         .select("*")
         .order("chapter_no")
         .order("verse_start");
 
+      if (chapter && chapter !== "all") {
+        query = query.eq("chapter_no", parseInt(chapter));
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-      
+
       setTafsirs(data || []);
       setFilteredTafsirs(data || []);
-      
-      // Reset filters
-      setChapterFilter("all");
-      setSearchTerm("");
-      setRangeFilter({ start: "", end: "" });
-      
-      toast.success(`Loaded ${data?.length || 0} tafsir entries`);
-    } catch (error) {
-      toast.error("Failed to load tafsir data");
-      console.error(error);
-      setTafsirs([]);
-      setFilteredTafsirs([]);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load tafsir");
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (chapterFilter !== "all") {
+      loadData(chapterFilter);
+    }
+  }, [chapterFilter]);
 
   // Apply filters
   useEffect(() => {
@@ -102,7 +136,7 @@ export default function Thafseer() {
       const start = parseInt(rangeFilter.start);
       const end = parseInt(rangeFilter.end);
       if (!isNaN(start) && !isNaN(end)) {
-        result = result.filter(item => 
+        result = result.filter(item =>
           (item.verse_start >= start && item.verse_start <= end) ||
           (item.verse_end >= start && item.verse_end <= end) ||
           (item.verse_start <= start && item.verse_end >= end)
@@ -113,7 +147,7 @@ export default function Thafseer() {
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(item => 
+      result = result.filter(item =>
         item.thafseer?.toLowerCase().includes(term) ||
         item.chapter_no?.toString().includes(term) ||
         item.verse_start?.toString().includes(term) ||
@@ -132,10 +166,10 @@ export default function Thafseer() {
 
   const handleDelete = async (tafsir) => {
     const surahName = surahs.find(s => s.id === tafsir.chapter_no)?.malayalam_name || `Chapter ${tafsir.chapter_no}`;
-    const verseRange = tafsir.verse_start === tafsir.verse_end 
+    const verseRange = tafsir.verse_start === tafsir.verse_end
       ? `verse ${tafsir.verse_start}`
       : `verses ${tafsir.verse_start}-${tafsir.verse_end}`;
-    
+
     if (!window.confirm(`Are you sure you want to delete tafsir for ${surahName} (${verseRange})?`)) {
       return;
     }
@@ -160,6 +194,9 @@ export default function Thafseer() {
     // Open in a new tab or show details modal
     const surahName = surahs.find(s => s.id === tafsir.chapter_no)?.malayalam_name || `Chapter ${tafsir.chapter_no}`;
     toast.info(`Viewing tafsir for ${surahName} (${tafsir.verse_start}-${tafsir.verse_end})`);
+    setSelectedTafsir(tafsir);
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
   const handleAddNew = () => {
@@ -226,7 +263,7 @@ export default function Thafseer() {
     a.href = url;
     a.download = `tafsir-entries-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    
+
     toast.success(`Exported ${filteredTafsirs.length} tafsir entries`);
   };
 
@@ -237,29 +274,94 @@ export default function Thafseer() {
 
   // Get unique chapters for filtering
   const uniqueChapters = [...new Set(tafsirs.map(t => t.chapter_no))].sort((a, b) => a - b);
-  
+
   // Statistics
   const stats = {
     total: tafsirs.length,
     chaptersCovered: uniqueChapters.length,
     singleVerse: tafsirs.filter(t => t.verse_start === t.verse_end).length,
     multiVerse: tafsirs.filter(t => t.verse_start !== t.verse_end).length,
-    averageLength: tafsirs.length > 0 
+    averageLength: tafsirs.length > 0
       ? Math.round(tafsirs.reduce((sum, t) => sum + (t.thafseer?.length || 0), 0) / tafsirs.length)
       : 0
   };
 
   const columns = [
-    { 
-      header: "ID", 
+    {
+      header: "ID",
       accessor: "id",
       render: (value) => (
         <span className="font-mono font-semibold text-blue-600">#{value}</span>
       )
     },
-    { 
-      header: "Chapter", 
+    {
+      header: "Details",
+      accessor: "details",
+      className: "md:hidden",
+      render: (_, row) => {
+        const surah = surahs.find(s => s.id === row.chapter_no);
+        const verseCount = surah?.verse_count || 0;
+        const coveredVerses = row.verse_end - row.verse_start + 1;
+        const coverage = verseCount > 0 ? (coveredVerses / verseCount) * 100 : 0;
+
+        return (
+          <div className="space-y-2">
+
+            {/* Chapter */}
+            <div>
+              <div className="font-semibold text-gray-800">
+                Chapter {row.chapter_no}
+              </div>
+              {surah && (
+                <>
+                  <div className="text-right font-arabic text-lg">
+                    {surah.arabic_name}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {surah.malayalam_name}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Verses */}
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs font-semibold">
+                {row.verse_start === row.verse_end
+                  ? row.verse_start
+                  : `${row.verse_start}-${row.verse_end}`}
+              </span>
+
+              <span className="text-xs text-gray-400">
+                {coveredVerses} verse{coveredVerses > 1 ? "s" : ""}
+              </span>
+            </div>
+
+            {/* Tafsir */}
+            <div className="text-sm text-gray-700 line-clamp-2">
+              {row.thafseer?.substring(0, 120)}
+              {row.thafseer?.length > 120 ? "..." : ""}
+            </div>
+
+            {/* Status */}
+            <div className="text-xs">
+              {coverage === 100 ? (
+                <span className="text-green-600 font-medium">Complete</span>
+              ) : (
+                <span className="text-blue-600 font-medium">
+                  {Math.round(coverage)}% covered
+                </span>
+              )}
+            </div>
+
+          </div>
+        );
+      }
+    },
+    {
+      header: "Chapter",
       accessor: "chapter_no",
+      className: "hidden md:table-cell",
       render: (value, row) => {
         const surah = surahs.find(s => s.id === value);
         return (
@@ -279,17 +381,17 @@ export default function Thafseer() {
         );
       }
     },
-    { 
-      header: "Verses", 
+    {
+      header: "Verses",
       accessor: "verse_start",
+      className: "hidden md:table-cell",
       render: (value, row) => (
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-1 rounded text-sm font-semibold ${
-              row.verse_start === row.verse_end
-                ? "bg-green-100 text-green-600"
-                : "bg-blue-100 text-blue-600"
-            }`}>
+            <span className={`px-2 py-1 rounded text-sm font-semibold ${row.verse_start === row.verse_end
+              ? "bg-green-100 text-green-600"
+              : "bg-blue-100 text-blue-600"
+              }`}>
               {row.verse_start === row.verse_end ? (
                 <span className="flex items-center gap-1">
                   <Hash className="w-3 h-3" />
@@ -309,9 +411,10 @@ export default function Thafseer() {
         </div>
       )
     },
-    { 
-      header: "Tafsir Preview", 
+    {
+      header: "Tafsir Preview",
       accessor: "thafseer",
+      className: "hidden md:table-cell",
       render: (value) => (
         <div className="max-w-md">
           <div className="text-gray-700 line-clamp-2 text-sm">
@@ -323,15 +426,16 @@ export default function Thafseer() {
         </div>
       )
     },
-    { 
-      header: "Status", 
-      accessor: "id",
+    {
+      header: "Status",
+      accessor: "status",
+      className: "hidden md:table-cell",
       render: (value, row) => {
         const surah = surahs.find(s => s.id === row.chapter_no);
         const verseCount = surah?.verse_count || 0;
         const coveredVerses = row.verse_end - row.verse_start + 1;
         const coverage = verseCount > 0 ? (coveredVerses / verseCount) * 100 : 0;
-        
+
         return (
           <div className="text-sm">
             {coverage === 100 ? (
@@ -362,7 +466,7 @@ export default function Thafseer() {
           <h2 className="text-2xl font-bold text-gray-800">Quran Tafsir</h2>
           <p className="text-gray-600 mt-1">Detailed explanations and interpretations of Quranic verses</p>
         </div>
-        
+
         <div className="flex items-center space-x-3 mt-4 md:mt-0">
           <button
             onClick={loadData}
@@ -371,7 +475,7 @@ export default function Thafseer() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          
+
           <button
             onClick={handleAddNew}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -379,7 +483,7 @@ export default function Thafseer() {
             <Plus className="w-4 h-4" />
             Add Tafsir
           </button>
-          
+
           <button
             onClick={handleBulkAdd}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -403,7 +507,7 @@ export default function Thafseer() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -415,7 +519,7 @@ export default function Thafseer() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -448,7 +552,7 @@ export default function Thafseer() {
             <Filter className="w-5 h-5 text-gray-500" />
             <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
@@ -460,15 +564,14 @@ export default function Thafseer() {
             >
               Clear Filters
             </button>
-            
+
             <button
               onClick={handleExport}
               disabled={!filteredTafsirs.length}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                !filteredTafsirs.length
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${!filteredTafsirs.length
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-green-600 text-white hover:bg-green-700"
+                }`}
             >
               <Download className="w-4 h-4" />
               Export ({filteredTafsirs.length})
@@ -487,15 +590,20 @@ export default function Thafseer() {
               onChange={(e) => setChapterFilter(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
             >
-              <option value="all">All Chapters ({uniqueChapters.length})</option>
-              {uniqueChapters.map(chapter => {
+              <option value="all">All Chapters ({surahs.length})</option>
+              {/* {uniqueChapters.map(chapter => {
                 const surah = surahs.find(s => s.id === chapter);
                 return (
                   <option key={chapter} value={chapter}>
                     {chapter}. {surah?.arabic_name || "Chapter"} - {surah?.malayalam_name || "Unknown"}
                   </option>
                 );
-              })}
+              })} */}
+              {surahs.map((surah) => (
+                <option key={surah.id} value={surah.id}>
+                  {surah.id}. {surah.arabic_name} - {surah.malayalam_name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -551,7 +659,7 @@ export default function Thafseer() {
               {chapterFilter !== "all" && ` in Chapter ${chapterFilter}`}
               {searchTerm && ` matching "${searchTerm}"`}
             </div>
-            
+
             <div className="text-gray-500">
               Average length: {stats.averageLength} characters
             </div>
@@ -565,42 +673,61 @@ export default function Thafseer() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading tafsir data...</p>
         </div>
+
+      ) : chapterFilter === "all" ? (
+
+        // ❗ No chapter selected
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Select a Chapter</h3>
+          <p className="text-gray-500 max-w-md mx-auto">
+            Choose a Quran chapter to load Tafsir.
+          </p>
+        </div>
+
       ) : tafsirs.length > 0 ? (
+
         <Table
           title="Tafsir Entries"
           columns={columns}
           data={filteredTafsirs}
           pageSize={15}
-          showSearch={false} // We have our own search
+          showSearch={false}
           showActions={true}
           showRowsPerPage={true}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
           emptyMessage={
-            searchTerm || chapterFilter !== "all" || rangeFilter.start || rangeFilter.end
+            searchTerm || rangeFilter.start || rangeFilter.end
               ? "No tafsir entries match your filters"
               : "No tafsir entries found"
           }
         />
+
       ) : (
+
+        // ❗ Chapter selected but no tafsir
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-700 mb-2">No Tafsir Entries</h3>
           <p className="text-gray-500 max-w-md mx-auto mb-6">
-            Start adding tafsir explanations for Quranic verses to build your interpretation database.
+            No tafsir found for this chapter. Start adding entries.
           </p>
           <button
             onClick={handleAddNew}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto"
           >
             <Plus className="w-5 h-5" />
-            Add First Tafsir Entry
+            Add Tafsir
           </button>
         </div>
       )}
+
 
       {modalOpen && (
         <TafsirModal

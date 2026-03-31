@@ -25,7 +25,7 @@ export default function Chapters() {
         .from("surahs")
         .select("*")
         .order("id");
-      
+
       if (error) throw error;
       setSurahs(data || []);
     } catch (err) {
@@ -66,8 +66,11 @@ export default function Chapters() {
 
   const handleView = (surah) => {
     // Open in a new tab or show details modal
-    console.log("View surah details:", surah);
+    // console.log("View surah details:", surah);
     toast.info(`Viewing ${surah.arabic_name} details`);
+    setSelectedSurah(surah);
+    setModalMode("edit");
+    setModalOpen(true);
   };
 
   const handleAddNew = () => {
@@ -110,56 +113,112 @@ export default function Chapters() {
   };
 
   const columns = [
-    { 
-      header: "ID", 
+    {
+      header: "ID",
       accessor: "id",
+       className: "hidden md:table-cell ",
       render: (value) => (
         <span className="font-mono font-semibold text-blue-600">#{value}</span>
       )
     },
-    { 
-      header: "Arabic Name", 
-      accessor: "arabic_name",
-      render: (value) => (
-        <div className="text-right font-arabic text-xl leading-relaxed">{value}</div>
+    {
+      header: "Details",
+      accessor: "details",
+       className: "table-cell md:hidden",
+      render: (_, row) => (
+        <div className=" space-y-2">
+          {/* id */}
+          <div className="text-sm text-gray-500">
+            ID: <span className="font-mono font-semibold text-blue-600">#{row.id}</span>
+          </div>
+
+          {/* Arabic */}
+          <div className="text-right font-arabic text-lg">
+            {row.arabic_name}
+          </div>
+
+          {/* Malayalam */}
+          <div className="font-medium">
+            {row.malayalam_name}
+          </div>
+
+          {/* Meaning */}
+          <div className="text-gray-500 text-sm">
+            {row.malayalam_meaning || "-"}
+          </div>
+
+        
+        </div>
       )
     },
-    { 
-      header: "Malayalam Name", 
+    {
+      header: "Arabic Name",
+      accessor: "arabic_name",
+       className: "hidden md:table-cell ",
+      render: (value) => (
+        <div className=" text-right font-arabic text-xl leading-relaxed">{value}</div>
+      )
+    },
+    {
+      header: "Malayalam Name",
       accessor: "malayalam_name",
+      className: "hidden md:table-cell ",
       render: (value) => (
         <div className="font-medium text-gray-800">{value}</div>
       )
     },
-    { 
-      header: "Malayalam Meaning", 
+    {
+      header: "Malayalam Meaning",
       accessor: "malayalam_meaning",
+       className: "hidden md:table-cell ",
       render: (value) => (
         <div className="text-gray-600">{value || "-"}</div>
       )
     },
-    { 
-      header: "Verses", 
+    {
+      header: "Verses",
       accessor: "verse_count",
+       className: "hidden md:table-cell ",
       render: (value) => (
         <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">
           {value} verses
         </span>
       )
     },
-    { 
-      header: "Revelation Type", 
+    {
+      header: "Revelation Type",
       accessor: "chapter_type",
+       className: "hidden md:table-cell ",
       render: (value) => (
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-          value === 'Meccan' 
-            ? 'bg-green-100 text-green-600' 
-            : 'bg-purple-100 text-purple-600'
-        }`}>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${value === 'Meccan'
+          ? 'bg-green-100 text-green-600'
+          : 'bg-purple-100 text-purple-600'
+          }`}>
           {value || "N/A"}
         </span>
       )
     },
+    {
+      header: "Info",
+      accessor: "info",
+       className: "table-cell md:hidden",
+      render: (_, row) => (
+          <div className="flex gap-2 flex-wrap pt-1">
+            <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs">
+              {row.verse_count} verses
+            </span>
+
+            <span
+              className={`px-2 py-1 rounded text-xs ${row.chapter_type === "Meccan"
+                  ? "bg-green-100 text-green-600"
+                  : "bg-purple-100 text-purple-600"
+                }`}
+            >
+              {row.chapter_type || "N/A"}
+            </span>
+          </div>
+      )
+    }
   ];
 
   if (loading && surahs.length === 0) {
@@ -205,7 +264,7 @@ export default function Chapters() {
           <h2 className="text-2xl font-bold text-gray-800">Quran Chapters (Surahs)</h2>
           <p className="text-gray-600 mt-1">Manage all 114 chapters of the Holy Quran</p>
         </div>
-        
+
         <div className="flex items-center space-x-3 mt-4 md:mt-0">
           <button
             onClick={loadSurahs}
@@ -214,7 +273,7 @@ export default function Chapters() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          
+
           <button
             onClick={handleAddNew}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -238,7 +297,7 @@ export default function Chapters() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -252,7 +311,7 @@ export default function Chapters() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>

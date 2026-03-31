@@ -4,43 +4,46 @@ import { supabase } from "@/libs/createClient";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+  useEffect(() => {
+    let isMounted = true;
 
-        const fetchUser = async () => {
-            try {
-                const { data: { session }, } = await supabase.auth.getSession();
-                // console.log('session', session.user.user_metadata);
-                setUser(session?.user ?? null);
-            } catch (error) {
-                console.error('Error fetching user:', error.message);
+    // 🔥 Listen FIRST (important)
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (isMounted) {
+          setUser(session?.user ?? null);
+          setLoading(false); // ✅ only here
+        }
+      }
+    );
 
-            }
-        };
+    // 🔥 Then fetch session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted && session) {
+        setUser(session.user);
+        setLoading(false);
+      }
+    });
 
-        fetchUser();
-
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event,
-            session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => {
-            authListener?.subscription.unsubscribe();
-        };
-
-    }, []);
-
-    const logout = async () => {
-        await supabase.auth.signOut();
-        setUser(null);
+    return () => {
+      isMounted = false;
+      authListener?.subscription.unsubscribe();
     };
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ user, logout }}>
-            {children}
-        </AuthContext.Provider>
-    )};
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export const useAuth = () => useContext(AuthContext);
