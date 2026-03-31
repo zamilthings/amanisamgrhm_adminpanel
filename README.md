@@ -47,23 +47,6 @@ A lightweight admin dashboard built with **React**, **Supabase**, and **Tailwind
     ```sh
      npm run dev
     ```
-Project Structure
-src/
- ├─ pages/
- │   ├─ Dashboard.jsx
- │   ├─ Surahs.jsx
- │   ├─ Verses.jsx
- │   ├─ Thafseer.jsx
- │   ├─ About.jsx
- │   ├─ Feedbacks.jsx
- │   └─ Settings.jsx
- ├─ components/
- │   ├─ Sidebar.jsx
- │   ├─ Layout.jsx
- │   └─ Table.jsx
- ├─ libs/
- │   ├─ createClient.js
- │   └─ useAuth.js
- └─ App.jsx
+
 
 
