@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { X, Save, BookOpen, Hash, Layers, Text } from "lucide-react";
+import { X, Save, BookOpen, Hash, Layers, Text, Keyboard } from "lucide-react";
+import KeyboardHelper from "@/components/Input/KeyboardHelper";
 
 export default function TafsirModal({ mode, tafsir, surahs, onSave, onClose, open }) {
   const [formData, setFormData] = useState({
@@ -10,6 +11,7 @@ export default function TafsirModal({ mode, tafsir, surahs, onSave, onClose, ope
     thafseer: ""
   });
 
+  const [showKeyboard, setShowKeyboard] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -90,6 +92,13 @@ export default function TafsirModal({ mode, tafsir, surahs, onSave, onClose, ope
       ...prev,
       verse_start: value,
       verse_end: value > prev.verse_end ? value : prev.verse_end
+    }));
+  };
+
+  const handleKeyboardInput = (char) => {
+    setFormData(prev => ({
+      ...prev,
+      thafseer: prev.thafseer + char
     }));
   };
 
@@ -214,10 +223,20 @@ export default function TafsirModal({ mode, tafsir, surahs, onSave, onClose, ope
 
             {/* Tafsir Content */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Text className="w-4 h-4 inline mr-2 text-purple-500" />
-                Tafsir Content <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  <Text className="w-4 h-4 inline mr-2 text-purple-500" />
+                  Tafsir Content <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyboard(!showKeyboard)}
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${showKeyboard ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  <Keyboard className="w-3 h-3" />
+                  {showKeyboard ? 'Keyboard Open' : 'Virtual Keyboard'}
+                </button>
+              </div>
               <textarea
                 value={formData.thafseer}
                 onChange={(e) => setFormData({...formData, thafseer: e.target.value})}
@@ -285,6 +304,13 @@ export default function TafsirModal({ mode, tafsir, surahs, onSave, onClose, ope
           </form>
         </div>
       </div>
+      
+      {showKeyboard && (
+        <KeyboardHelper 
+          onInput={handleKeyboardInput} 
+          targetField="Tafsir Content" 
+        />
+      )}
     </div>
   );
 }

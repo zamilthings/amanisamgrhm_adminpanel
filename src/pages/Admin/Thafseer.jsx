@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/libs/createClient";
 import { toast } from "sonner";
 import Table from "@/components/Table";
@@ -14,116 +14,34 @@ import {
   Hash,
   Layers,
   Book,
-  CheckCircle,
-  XCircle
+  CheckCircle
 } from "lucide-react";
+import { useSurahs } from "@/hooks/useSurahs";
+import { useThafseers } from "@/hooks/useThafseers";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Thafseer() {
-  const [surahs, setSurahs] = useState([]);
-  const [tafsirs, setTafsirs] = useState([]);
-  const [filteredTafsirs, setFilteredTafsirs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: surahs = [] } = useSurahs();
+  
+  // Filter states
+  const [chapterFilter, setChapterFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [rangeFilter, setRangeFilter] = useState({ start: "", end: "" });
+
+  const { 
+    data: tafsirs = [], 
+    isLoading: loading, 
+    refetch: loadData 
+  } = useThafseers(chapterFilter);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add");
   const [selectedTafsir, setSelectedTafsir] = useState(null);
 
-  // Filter states
-  const [chapterFilter, setChapterFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [rangeFilter, setRangeFilter] = useState({ start: "", end: "" });
-
-  // Load surah list for filtering
-  useEffect(() => {
-    async function loadSurahs() {
-      try {
-        const { data, error } = await supabase
-          .from("surahs")
-          .select("id, malayalam_name, arabic_name, verse_count")
-          .order("id");
-
-        if (error) throw error;
-        setSurahs(data || []);
-      } catch (error) {
-        toast.error("Failed to load chapters");
-        console.error(error);
-      }
-    }
-    loadSurahs();
-  }, []);
-
-  // Load tafsir data
-  // useEffect(() => {
-  //   // loadData();
-  // }, []);
-
-  // async function loadData() {
-  //   try {
-  //     setLoading(true);
-  //     const { data, error } = await supabase
-  //       .from("thafseers")
-  //       .select("*")
-  //       .order("chapter_no")
-  //       .order("verse_start");
-
-  //     if (error) throw error;
-
-  //     setTafsirs(data || []);
-  //     setFilteredTafsirs(data || []);
-
-  //     // Reset filters
-  //     setChapterFilter("all");
-  //     setSearchTerm("");
-  //     setRangeFilter({ start: "", end: "" });
-
-  //     toast.success(`Loaded ${data?.length || 0} tafsir entries`);
-  //   } catch (error) {
-  //     toast.error("Failed to load tafsir data");
-  //     console.error(error);
-  //     setTafsirs([]);
-  //     setFilteredTafsirs([]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
-
-  async function loadData(chapter = null) {
-    try {
-      setLoading(true);
-
-      let query = supabase
-        .from("thafseers")
-        .select("*")
-        .order("chapter_no")
-        .order("verse_start");
-
-      if (chapter && chapter !== "all") {
-        query = query.eq("chapter_no", parseInt(chapter));
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      setTafsirs(data || []);
-      setFilteredTafsirs(data || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load tafsir");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (chapterFilter !== "all") {
-      loadData(chapterFilter);
-    }
-  }, [chapterFilter]);
-
-  // Apply filters
-  useEffect(() => {
+  // Apply filters with useMemo to avoid infinite loops and unnecessary re-renders
+  const filteredTafsirs = useMemo(() => {
     let result = [...tafsirs];
 
     // Apply chapter filter
@@ -155,8 +73,9 @@ export default function Thafseer() {
       );
     }
 
-    setFilteredTafsirs(result);
+    return result;
   }, [tafsirs, chapterFilter, rangeFilter, searchTerm]);
+
 
   const handleEdit = (tafsir) => {
     setSelectedTafsir(tafsir);
@@ -183,7 +102,7 @@ export default function Thafseer() {
       if (error) throw error;
 
       toast.success(`Tafsir deleted successfully`);
-      loadData(); // Refresh the list
+      queryClient.invalidateQueries({ queryKey: ["thafseers", chapterFilter] });
     } catch (error) {
       toast.error("Failed to delete tafsir");
       console.error(error);
@@ -191,7 +110,6 @@ export default function Thafseer() {
   };
 
   const handleView = (tafsir) => {
-    // Open in a new tab or show details modal
     const surahName = surahs.find(s => s.id === tafsir.chapter_no)?.malayalam_name || `Chapter ${tafsir.chapter_no}`;
     toast.info(`Viewing tafsir for ${surahName} (${tafsir.verse_start}-${tafsir.verse_end})`);
     setSelectedTafsir(tafsir);
@@ -208,50 +126,30 @@ export default function Thafseer() {
   const handleModalSave = async (tafsirData) => {
     try {
       if (modalMode === "add") {
-        // Add new tafsir
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("thafseers")
-          .insert([tafsirData])
-          .select()
-          .single();
+          .insert([tafsirData]);
 
         if (error) throw error;
-
-        const surahName = surahs.find(s => s.id === tafsirData.chapter_no)?.malayalam_name || `Chapter ${tafsirData.chapter_no}`;
-        toast.success(`Tafsir added successfully for ${surahName}`);
-
-        // Add the new tafsir to local state without reloading all data
-        setTafsirs(prev => [...prev, data]);
-        
+        toast.success(`Tafsir added successfully`);
       } else {
-        // Update existing tafsir
         const { error } = await supabase
           .from("thafseers")
           .update(tafsirData)
           .eq("id", tafsirData.id);
 
         if (error) throw error;
-
-        const surahName = surahs.find(s => s.id === tafsirData.chapter_no)?.malayalam_name || `Chapter ${tafsirData.chapter_no}`;
-        toast.success(`Tafsir updated successfully for ${surahName}`);
+        toast.success(`Tafsir updated successfully`);
       }
 
       setModalOpen(false);
-      // update local state without reloading all data
-      setTafsirs(prev => {
-        if (modalMode === "add") {
-          return [...prev, tafsirData];
-        } else {
-          return prev.map(t => t.id === tafsirData.id ? tafsirData : t);
-        }
-      });
-
-      // loadData();
+      queryClient.invalidateQueries({ queryKey: ["thafseers", chapterFilter] });
     } catch (error) {
       toast.error(`Failed to ${modalMode} tafsir`);
       console.error(error);
     }
   };
+
 
   const handleExport = () => {
     if (!filteredTafsirs.length) {

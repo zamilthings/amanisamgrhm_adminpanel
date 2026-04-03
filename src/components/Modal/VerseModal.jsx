@@ -1,6 +1,7 @@
 // components/VerseModal.jsx
 import { useState, useEffect } from "react";
-import { X, Save, BookOpen, Hash, FileText } from "lucide-react";
+import { X, Save, BookOpen, Hash, FileText, Keyboard } from "lucide-react";
+import KeyboardHelper from "@/components/Input/KeyboardHelper";
 
 export default function VerseModal({ mode, verse, surah, onSave, onClose, open }) {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ export default function VerseModal({ mode, verse, surah, onSave, onClose, open }
     malayalam: ""
   });
 
+  const [activeKeyboardField, setActiveKeyboardField] = useState(null); // 'arabic' or 'malayalam'
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -70,6 +72,15 @@ export default function VerseModal({ mode, verse, surah, onSave, onClose, open }
 
     await onSave(dataToSave);
     setLoading(false);
+  };
+
+  const handleKeyboardInput = (char) => {
+    if (activeKeyboardField) {
+      setFormData(prev => ({
+        ...prev,
+        [activeKeyboardField]: prev[activeKeyboardField] + char
+      }));
+    }
   };
 
   if (!open) return null;
@@ -154,13 +165,24 @@ export default function VerseModal({ mode, verse, surah, onSave, onClose, open }
             </div>
 
             {/* Arabic Text */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Arabic Text <span className="text-red-500">*</span>
-              </label>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Arabic Text <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setActiveKeyboardField(activeKeyboardField === 'arabic' ? null : 'arabic')}
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${activeKeyboardField === 'arabic' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  <Keyboard className="w-3 h-3" />
+                  {activeKeyboardField === 'arabic' ? 'Keyboard Open' : 'Arabic Keyboard'}
+                </button>
+              </div>
               <textarea
                 value={formData.arabic}
                 onChange={(e) => setFormData({...formData, arabic: e.target.value})}
+                onFocus={() => {}} // Optional: automatically show keyboard
                 rows="3"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-y font-arabic text-xl text-right leading-relaxed"
                 placeholder="النص العربي..."
@@ -190,9 +212,19 @@ export default function VerseModal({ mode, verse, surah, onSave, onClose, open }
 
             {/* Malayalam Translation */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Malayalam Translation
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Malayalam Translation
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setActiveKeyboardField(activeKeyboardField === 'malayalam' ? null : 'malayalam')}
+                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${activeKeyboardField === 'malayalam' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  <Keyboard className="w-3 h-3" />
+                  {activeKeyboardField === 'malayalam' ? 'Keyboard Open' : 'Malayalam Keyboard'}
+                </button>
+              </div>
               <textarea
                 value={formData.malayalam}
                 onChange={(e) => setFormData({...formData, malayalam: e.target.value})}
@@ -236,6 +268,14 @@ export default function VerseModal({ mode, verse, surah, onSave, onClose, open }
           </form>
         </div>
       </div>
+
+      {/* Keyboard Helper */}
+      {activeKeyboardField && (
+        <KeyboardHelper 
+          onInput={handleKeyboardInput} 
+          targetField={activeKeyboardField === 'arabic' ? 'Arabic Text' : 'Malayalam Translation'} 
+        />
+      )}
     </div>
   );
 }

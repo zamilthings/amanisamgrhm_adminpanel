@@ -1,41 +1,19 @@
-// pages/Chapters.jsx
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/libs/createClient";
 import { toast } from "sonner";
 import Table from "@/components/Table";
-import { Plus, RefreshCw, FileText, BookOpen, MessageSquare } from "lucide-react";
+import { Plus, RefreshCw, FileText, BookOpen } from "lucide-react";
 import SurahModal from "@/components/Modal/SurahModal";
+import { useSurahs } from "@/hooks/useSurahs";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Chapters() {
-  const [surahs, setSurahs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
+  const { data: surahs = [], isLoading: loading, error, refetch: loadSurahs } = useSurahs();
+  
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSurah, setSelectedSurah] = useState(null);
   const [modalMode, setModalMode] = useState("add"); // "add" or "edit"
-
-  useEffect(() => {
-    loadSurahs();
-  }, []);
-
-  async function loadSurahs() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("surahs")
-        .select("*")
-        .order("id");
-
-      if (error) throw error;
-      setSurahs(data || []);
-    } catch (err) {
-      setError(err.message);
-      toast.error("Failed to load chapters");
-      console.error("Error loading surahs:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const handleEdit = (surah) => {
     setSelectedSurah(surah);
@@ -57,9 +35,7 @@ export default function Chapters() {
       if (error) throw error;
 
       toast.success(`Chapter "${surah.arabic_name}" deleted successfully`);
-      setSurahs(prev => prev.filter(s => s.id !== surah.id));
-      // Optionally, you could update the local state directly here instead of reloading all surahs
-      // loadSurahs(); // Refresh the list
+      queryClient.invalidateQueries({ queryKey: ["surahs"] });
     } catch (error) {
       toast.error("Failed to delete chapter");
       console.error("Delete error:", error);
@@ -67,8 +43,6 @@ export default function Chapters() {
   };
 
   const handleView = (surah) => {
-    // Open in a new tab or show details modal
-    // console.log("View surah details:", surah);
     toast.info(`Viewing ${surah.arabic_name} details`);
     setSelectedSurah(surah);
     setModalMode("edit");
@@ -84,43 +58,30 @@ export default function Chapters() {
   const handleModalSave = async (surahData) => {
     try {
       if (modalMode === "add") {
-        // Add new surah
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("surahs")
-          .insert([surahData])
-          .select()
-          .single();
+          .insert([surahData]);
 
         if (error) throw error;
-
         toast.success(`Chapter "${surahData.arabic_name}" added successfully`);
       } else {
-        // Update existing surah
         const { error } = await supabase
           .from("surahs")
           .update(surahData)
           .eq("id", surahData.id);
 
         if (error) throw error;
-
         toast.success(`Chapter "${surahData.arabic_name}" updated successfully`);
       }
 
       setModalOpen(false);
-      setSurahs(prev => {
-        if (modalMode === "add") {
-          return [...prev, { ...surahData, id: prev.length ? Math.max(...prev.map(s => s.id)) + 1 : 1 }];
-        } else {
-          return prev.map(s => s.id === surahData.id ? { ...s, ...surahData } : s);
-        }
-      });
-      // Optionally, you could update the local state directly here instead of reloading all surahs
-      // loadSurahs(); // Refresh the list
+      queryClient.invalidateQueries({ queryKey: ["surahs"] });
     } catch (error) {
       toast.error(`Failed to ${modalMode} chapter`);
       console.error("Save error:", error);
     }
   };
+
 
   const columns = [
     {
