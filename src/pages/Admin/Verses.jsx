@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/libs/createClient";
 import { toast } from "sonner";
 import Table from "@/components/Table";
@@ -11,17 +11,22 @@ import {
   RefreshCw,
   Plus,
   Layers,
-  FileText,
   Hash
 } from "lucide-react";
+import { useSurahs } from "@/hooks/useSurahs";
+import { useAyahs } from "@/hooks/useAyahs";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Verses() {
-  const [surahs, setSurahs] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: surahs = [], isLoading: surahLoading } = useSurahs();
   const [selectedSurah, setSelectedSurah] = useState(null);
-  const [ayahs, setAyahs] = useState([]);
-  const [filteredAyahs, setFilteredAyahs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [surahLoading, setSurahLoading] = useState(false);
+  
+  const { 
+    data: ayahs = [], 
+    isLoading: loading, 
+    refetch: fetchAyahs 
+  } = useAyahs(selectedSurah);
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -33,68 +38,17 @@ export default function Verses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [verseRange, setVerseRange] = useState({ start: "", end: "" });
 
-  // Load surah list
+  // Reset filters when surah changes
   useEffect(() => {
-    async function loadSurahs() {
-      try {
-        const { data, error } = await supabase
-          .from("surahs")
-          .select("id, malayalam_name, arabic_name, verse_count")
-          .order("id");
-
-        if (error) throw error;
-        setSurahs(data || []);
-      } catch (error) {
-        toast.error("Failed to load chapters");
-        console.error(error);
-      }
+    if (selectedSurah) {
+      setJuzFilter("all");
+      setSearchTerm("");
+      setVerseRange({ start: "", end: "" });
     }
-    loadSurahs();
-  }, []);
-
-  // Load ayahs when surah changes
-  useEffect(() => {
-    if (!selectedSurah) {
-      setAyahs([]);
-      setFilteredAyahs([]);
-      return;
-    }
-
-    async function fetchAyahs() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("ayahs")
-          .select("*")
-          .eq("chapter_no", selectedSurah)
-          .order("verse_no");
-
-        if (error) throw error;
-
-        setAyahs(data || []);
-        setFilteredAyahs(data || []);
-
-        // Reset filters
-        setJuzFilter("all");
-        setSearchTerm("");
-        setVerseRange({ start: "", end: "" });
-
-        toast.success(`Loaded ${data?.length || 0} verses`);
-      } catch (error) {
-        toast.error("Failed to load verses");
-        console.error(error);
-        setAyahs([]);
-        setFilteredAyahs([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAyahs();
   }, [selectedSurah]);
 
-  // Apply filters
-  useEffect(() => {
+  // Apply filters with useMemo to avoid infinite loops and unnecessary re-renders
+  const filteredAyahs = useMemo(() => {
     let result = [...ayahs];
 
     // Apply Juz filter
@@ -124,8 +78,9 @@ export default function Verses() {
       );
     }
 
-    setFilteredAyahs(result);
+    return result;
   }, [ayahs, juzFilter, verseRange, searchTerm]);
+
 
   const handleEdit = (ayah) => {
     setSelectedVerse(ayah);
@@ -149,19 +104,7 @@ export default function Verses() {
       if (error) throw error;
 
       toast.success(`Verse ${ayah.verse_no} deleted successfully`);
-
-      // Refresh the list
-      // if (selectedSurah) {
-      //   const { data } = await supabase
-      //     .from("ayahs")
-      //     .select("*")
-      //     .eq("chapter_no", selectedSurah)
-      //     .order("verse_no");
-
-      //   setAyahs(data || []);
-      // }
-      setAyahs(prev => prev.filter(a => a.id !== ayah.id));
-
+      queryClient.invalidateQueries({ queryKey: ["ayahs", selectedSurah] });
     } catch (error) {
       toast.error("Failed to delete verse");
       console.error(error);
@@ -170,7 +113,6 @@ export default function Verses() {
 
   const handleView = (ayah) => {
     toast.info(`Viewing verse ${ayah.verse_no}`);
-    // Could open a detailed view modal here
     setSelectedVerse(ayah);
     setModalMode("edit");
     setModalOpen(true);
@@ -203,57 +145,33 @@ export default function Verses() {
   const handleModalSave = async (verseData) => {
     try {
       if (modalMode === "add") {
-        // Add new verse
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("ayahs")
           .insert([{
             ...verseData,
             chapter_no: selectedSurah
-          }])
-          .select()
-          .single();
+          }]);
 
         if (error) throw error;
-
         toast.success(`Verse ${verseData.verse_no} added successfully`);
       } else {
-        // Update existing verse
         const { error } = await supabase
           .from("ayahs")
           .update(verseData)
           .eq("id", verseData.id);
 
         if (error) throw error;
-
         toast.success(`Verse ${verseData.verse_no} updated successfully`);
       }
 
       setModalOpen(false);
-
-      // Refresh the list
-      // if (selectedSurah) {
-      //   const { data } = await supabase
-      //     .from("ayahs")
-      //     .select("*")
-      //     .eq("chapter_no", selectedSurah)
-      //     .order("verse_no");
-
-      //   setAyahs(data || []);
-      // }
-      setAyahs(prev => {
-        if (modalMode === "add") {
-          return [...prev, { ...verseData, id: prev.length ? Math.max(...prev.map(a => a.id)) + 1 : 1 }];
-        } else {
-          return prev.map(a => a.id === verseData.id ? { ...a, ...verseData } : a);
-        }
-      }
-      );
-      
+      queryClient.invalidateQueries({ queryKey: ["ayahs", selectedSurah] });
     } catch (error) {
       toast.error(`Failed to ${modalMode} verse`);
       console.error(error);
     }
   };
+
 
   const handleExport = () => {
     if (!filteredAyahs.length) {
